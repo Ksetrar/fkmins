@@ -1,16 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Redirecting...</title>
-    <!-- REPLACE THE 3 URLS BELOW WITH YOUR DESTINATION LINK -->
-    <link rel="canonical" href="https://YOUR-DESTINATION-LINK-HERE.com">
-    <meta http-equiv="refresh" content="0; url='https://YOUR-DESTINATION-LINK-HERE.com'" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fkmins | Redirecting...</title>
+    <style>
+        /* A sleek, dark-mode design for your loading screen */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #0d1117; 
+            color: #c9d1d9; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            flex-direction: column; 
+            text-align: center;
+        }
+        .spinner { 
+            border: 4px solid rgba(255,255,255,0.1); 
+            border-left-color: #58a6ff; 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            animation: spin 1s linear infinite; 
+            margin-bottom: 20px; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        .message { font-size: 1.2rem; }
+        .error { color: #ff7b72; display: none; }
+        .home-menu { display: none; margin-top: 20px;}
+        a { color: #58a6ff; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
-    <p>Redirecting you... If it takes too long, <a href="https://YOUR-DESTINATION-LINK-HERE.com">click here</a>.</p>
+    <div class="spinner" id="spinner"></div>
+    <div class="message" id="msg">Locating link...</div>
+    
+    <div class="error" id="errorMsg">
+        <h2>404 - Link Not Found</h2>
+        <p>This short link doesn't exist in your database.</p>
+    </div>
+
+    <div class="home-menu" id="homeMenu">
+        <h2>fkmins URL Manager</h2>
+        <p>To use a link, add <b>#yourlink</b> to the end of the URL.</p>
+        <p>Example: <a href="#gh">fkmins.github.io/#gh</a></p>
+    </div>
+
     <script>
-        window.location.href = "https://YOUR-DESTINATION-LINK-HERE.com";
+        // ==========================================
+        // 1. PASTE YOUR GOOGLE SHEET CSV LINK BELOW
+        // ==========================================
+        const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHjhgb4uObv5OHn5ox2jK0wg2aTnZpiRSCg-tK6xmvqpRbCN1d9Sc0z0fdQh2xkaCtlFMXw_6rd4F1/pub?gid=0&single=true&output=csv";
+
+        // 2. Look at the URL and grab the word after the "#"
+        const shortWord = window.location.hash.substring(1).toLowerCase();
+
+        if (!shortWord) {
+            // If someone just visits the main site with no link, show the home menu
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('msg').style.display = 'none';
+            document.getElementById('homeMenu').style.display = 'block';
+        } else {
+            // If there is a #link, fetch the Google Sheet to find the match
+            fetch(sheetCsvUrl)
+                .then(response => response.text())
+                .then(csv => {
+                    const rows = csv.split('\n');
+                    let found = false;
+
+                    for (let i = 1; i < rows.length; i++) { // Skip the header row
+                        const row = rows[i];
+                        if (!row) continue;
+
+                        // Split the row by the comma
+                        const firstCommaIndex = row.indexOf(',');
+                        if (firstCommaIndex === -1) continue;
+
+                        const key = row.substring(0, firstCommaIndex).trim().toLowerCase();
+                        let url = row.substring(firstCommaIndex + 1).trim();
+                        
+                        // Clean up quotes if Google Sheets added them
+                        if (url.startsWith('"') && url.endsWith('"')) {
+                            url = url.slice(1, -1);
+                        }
+
+                        // If the word matches, redirect instantly!
+                        if (key === shortWord) {
+                            document.getElementById('msg').innerText = 'Redirecting...';
+                            window.location.href = url;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    // If we checked the whole sheet and didn't find it
+                    if (!found) {
+                        document.getElementById('spinner').style.display = 'none';
+                        document.getElementById('msg').style.display = 'none';
+                        document.getElementById('errorMsg').style.display = 'block';
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('msg').innerText = 'Error connecting to database.';
+                });
+        }
     </script>
 </body>
 </html>
